@@ -95,6 +95,55 @@ The maximum average number of steps is in the interval 835.
 
 ## Imputing missing values
 
+The total number of NA values in the steps column is easily calculated:
+
+```r
+stepnas<-is.na(data$steps)
+num_na<-length(data$steps[stepnas])
+```
+There are 2304 observations with no data.  
+Lets complete the data using the average number of steps calculated in the previous section. We create a new data frame as asked and fill the NA's with the averages.
 
 
+```r
+data2<-data
+indices<-which(is.na(data$steps)==TRUE)
+for (i in length(indices)){
+      data2$steps[i]<-avg_steps[i]
+}
+```
+
+Now the exact same is done to data2 as in the first section for data:
+
+
+```r
+dates2<-unique(data2$date)
+nSteps2<-integer()
+
+for(i in 1:length(dates2)){
+	good2<-data2$date==dates2[i]	  
+	nSteps2[i]<-sum(data2$steps[good2])
+	}
+```
+
+The corresponding plot is done the same way:
+
+
+```r
+hist(nSteps2,main="Steps per day with NA's filled",
+     xlab="Total number of steps",
+     col="blue",breaks=15)
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-13-1.png) 
+
+The mean and the median are calculated the same way as in the first case:  
+
+```r
+mean2<-mean(nSteps2)
+mean2<-format(mean,scientific=FALSE)
+median2<-median(nSteps2)
+median2<-format(median2,scientific=FALSE)
+```
+The mean is 10766.19 and the median is NA. There's no difference to what was calculated earlier with the NA's removed. The histograms can not be distinquished either.
 ## Are there differences in activity patterns between weekdays and weekends?
