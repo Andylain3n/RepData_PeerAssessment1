@@ -108,8 +108,8 @@ Lets complete the data using the average number of steps calculated in the previ
 ```r
 data2<-data
 indices<-which(is.na(data$steps)==TRUE)
-for (i in length(indices)){
-      data2$steps[i]<-avg_steps[i]
+for (i in 1:length(indices)){
+      data2$steps[indices[i]]<-rep(cbind(avg_steps,avg_steps),61)[i]
 }
 ```
 
@@ -145,5 +145,94 @@ mean2<-format(mean,scientific=FALSE)
 median2<-median(nSteps2)
 median2<-format(median2,scientific=FALSE)
 ```
-The mean is 10766.19 and the median is NA. There's no difference to what was calculated earlier with the NA's removed. The histograms can not be distinquished either.
+The mean is 10766.19 and the median is 10395. There's no difference between the means, but the median is smaller than what was calculated earlier. The histograms looks different also.  
+
 ## Are there differences in activity patterns between weekdays and weekends?
+To get the weekdays for distinguishing the weekdays and weekends, function "weekdays" is needed. Also, the variable date in the data needs to be converted into POSIxlt using function strptime. strptime is given two parameters: the date column (the values are converted from factor into character strings using as.character), and a format (a regular expression) indicating which parts are the year, month and day. Note that the data with the filled in values (NA's replaced with means, data2) is used here:
+
+
+```r
+data2$date<-strptime(as.character(data2$date), "%Y-%m-%d")
+```
+
+To get the day names from weekdays() in english, I need to set the locale using the following command:
+
+
+```r
+Sys.setlocale("LC_TIME", "English")
+```
+
+```
+## [1] "English_United States.1252"
+```
+
+Next a factor variable indicating whether the date is a weekday or weekend is created using a simple comparison if the day given by function weekdays is  either Saturday or Sunday or not:
+
+
+```r
+data2$period<-ifelse(weekdays(data2$date)=="Saturday"
+		|weekdays(data2$date)=="Sunday","Weekend","Weekday")
+data2$period<-factor(data2$period)
+```
+
+Then the average step amounts for each interval are calculated for the filled data. We subset the data according whether the date is on a weekday or weekend and calculate the averages for both separately.
+
+
+```r
+avg_steps_int_wd<-integer()
+
+for(i in 1:length(intervals)){
+	goodi<-(data2$interval==intervals[i]
+	        &data2$period=="Weekday")
+	avg_steps_int_wd[i]<-mean(data2$steps[goodi])
+}
+
+avg_steps_int_wknd<-integer()
+
+for(i in 1:length(intervals)){
+	goodi<-(data2$interval==intervals[i]
+	        &data2$period=="Weekend")
+	avg_steps_int_wknd[i]<-mean(data2$steps[goodi])
+}
+```
+
+Next the data needs to be formed into a new data frame to make it easier to plot. To do this, first the vectors need to be forced into column form and new vectors need to be constructed. The idea is to put data of the weekdays on the first rows, and of the weekends to the last ones. This way, it is easy to later add a factor column to group the values. Also, the intervals are added twice, because the order of them for the average steps calculated earlier is the same. Therefore it is known the each row has the right label for the interval and the period (week or weekend). There are equally many means for both, so it is known that the number of rows is twice the number of the unique intervals. 
+
+
+```r
+avg_steps_int_wd<-cbind(avg_steps_int_wd)
+avg_steps_int_wknd<-cbind(avg_steps_int_wknd)
+interval<-cbind(unique(intervals))
+avg_steps<-rbind(avg_steps_int_wd,avg_steps_int_wknd)
+interval<-cbind(unique(interval))
+interval<-rbind(interval,interval)
+```
+
+Then, a data frame is constructed for the plotting. Also, a third column is added to group the intervals and the columns are named properly:
+
+
+```r
+meansteps<-cbind(interval,avg_steps)
+meansteps<-data.frame(meansteps)
+weekday<-cbind(rep("weekday",length(intervals)))
+weekend<-cbind(rep("weekend",length(intervals)))
+meansteps$period<-factor(rbind(weekday,weekend))
+names(meansteps)[1:2]<-c("Interval","Average_Steps")
+```
+
+The next code plots the average number of steps for each interval. The averages are plotted separately for weekdays and weekends in different panels and the period factor is used for this. The lattice library need to be loaded first:
+
+
+```r
+library(lattice)
+xyplot(Average_Steps~Interval|period,data=meansteps,
+      type="l",layout=c(1,2),
+      xlab="Interval",ylab="Number of Steps")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-21-1.png) 
+
+The figures show, that the activity patterns look different during the weekends than during the weeks. It seems that the number of steps taken is more uniformly distributed throughout the day on weekends. There is a peak in the morning in the steps taken on the weekdays.
+
+
+
